@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>濟州島行程 4/6–4/9</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#fff;--bg2:#f5f5f7;--bg3:#ebebed;
+  --tx1:#1a1a1a;--tx2:#555;--tx3:#888;
+  --border:#e0e0e0;--border2:#d0d0d0;
+  --radius:12px;--radius-sm:8px;
+  --food:#EF9F27;--food-bg:#FAEEDA;--food-tx:#854F0B;
+  --sight:#1D9E75;--sight-bg:#E1F5EE;--sight-tx:#085041;
+  --shop:#7F77DD;--shop-bg:#EEEDFE;--shop-tx:#3C3489;
+  --car:#378ADD;--car-bg:#E6F1FB;--car-tx:#0C447C;
+  --night:#D85A30;--night-bg:#FAECE7;--night-tx:#712B13;
+  --move:#888;--move-bg:#ebebed;--move-tx:#444;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;--tx1:#f2f2f7;--tx2:#aeaeb2;--tx3:#636366;--border:#3a3a3c;--border2:#48484a}
+}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx1)}
+
+#app{display:flex;flex-direction:column;height:100dvh}
+#map-wrap{flex-shrink:0;height:42dvh;position:relative}
+#map{width:100%;height:100%}
+#sidebar{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+@media(min-width:700px){
+  #app{flex-direction:row}
+  #map-wrap{width:55%;height:100dvh}
+  #sidebar{width:45%;height:100dvh}
+}
+
+#map-filter{position:absolute;top:8px;left:8px;z-index:1000;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 16px)}
+.mf{font-size:11px;padding:4px 10px;border-radius:14px;border:none;cursor:pointer;font-weight:600;background:rgba(255,255,255,.92);color:#333;backdrop-filter:blur(4px);box-shadow:0 1px 6px rgba(0,0,0,.2);transition:all .12s}
+.mf.on{color:#fff}
+.mf[data-d="0"].on{background:#378ADD}
+.mf[data-d="1"].on{background:#1D9E75}
+.mf[data-d="2"].on{background:#7F77DD}
+.mf[data-d="3"].on{background:#EF9F27}
+.mf[data-d="all"].on{background:#333}
+
+#tabs{display:flex;gap:6px;padding:10px 12px 0;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);font-size:13px;cursor:pointer;background:var(--bg);color:var(--tx2);white-space:nowrap;flex-shrink:0;font-weight:500;transition:all .15s}
+.tab.on{background:var(--tx1);color:var(--bg);border-color:transparent}
+
+.panel{display:none;padding:10px 12px 24px;flex-direction:column;gap:0}
+.panel.on{display:flex}
+.dh{padding:8px 0 12px}
+.dt{font-size:16px;font-weight:600;color:var(--tx1)}
+.ds{font-size:12px;color:var(--tx3);margin-top:2px}
+
+.tl{position:relative;padding-left:26px}
+.tl::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:1.5px;background:var(--border)}
+.st{position:relative;margin-bottom:10px;cursor:pointer}
+.dot{position:absolute;left:-23px;top:8px;width:10px;height:10px;border-radius:50%;border:2px solid var(--border2);background:var(--bg);transition:transform .15s}
+.st:hover .dot,.st.active .dot{transform:scale(1.4)}
+.dot.f{background:var(--food);border-color:#BA7517}
+.dot.s{background:var(--sight);border-color:#0F6E56}
+.dot.t{background:var(--bg3)}
+.dot.p{background:var(--shop);border-color:#534AB7}
+.dot.c{background:var(--car);border-color:#185FA5}
+.dot.n{background:var(--night);border-color:#993C1D}
+
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px;transition:border-color .15s,box-shadow .15s}
+.st:hover .card,.st.active .card{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.st.active .card{box-shadow:0 3px 16px rgba(0,0,0,.12)}
+.ct{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px}
+.tm{font-size:11px;color:var(--tx3);min-width:75px}
+.nm{font-size:14px;font-weight:600;color:var(--tx1)}
+.b{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500}
+.bf{background:var(--food-bg);color:var(--food-tx)}
+.bs{background:var(--sight-bg);color:var(--sight-tx)}
+.bt{background:var(--move-bg);color:var(--move-tx)}
+.bp{background:var(--shop-bg);color:var(--shop-tx)}
+.bc{background:var(--car-bg);color:var(--car-tx)}
+.bn{background:var(--night-bg);color:var(--night-tx)}
+.tip{font-size:12px;color:var(--tx2);line-height:1.6;margin-top:2px}
+.warn{font-size:11px;color:var(--food-tx);background:var(--food-bg);padding:3px 8px;border-radius:6px;display:inline-block;margin-top:4px}
+.or{background:var(--bg2);border-radius:var(--radius-sm);padding:7px 9px;margin-top:6px}
+.or-title{font-size:10px;color:var(--tx3);margin-bottom:4px;letter-spacing:.03em}
+.or-opt{display:flex;align-items:flex-start;gap:5px;margin-bottom:3px;font-size:12px;color:var(--tx2);line-height:1.5}
+.or-opt:last-child{margin-bottom:0}
+.pill{font-size:10px;background:var(--sight-bg);color:var(--sight-tx);padding:1px 6px;border-radius:8px;flex-shrink:0;margin-top:2px;font-weight:500}
+.pill.b2{background:var(--shop-bg);color:var(--shop-tx)}
+.rb{background:var(--bg2);border-radius:var(--radius-sm);padding:8px 10px;margin-top:6px}
+.rr{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid var(--border)}
+.rr:last-child{border-bottom:none}
+.rl{color:var(--tx3)}
+.rv{font-weight:600;color:var(--tx1)}
+.rv.red{color:#c0392b}
+.stp{display:flex;gap:7px;font-size:12px;color:var(--tx2);line-height:1.5;margin-bottom:3px;margin-top:3px}
+.sn{background:var(--car-bg);color:var(--car-tx);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:2px}
+.tag{display:inline-block;font-size:11px;background:var(--bg2);color:var(--tx2);padding:2px 7px;border-radius:8px;margin-top:4px;margin-right:3px}
+.tbox{background:var(--bg2);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:8px}
+.tt{font-size:13px;font-weight:600;color:var(--tx1);margin-bottom:5px}
+.tr{display:flex;gap:7px;font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:2px}
+.flt{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--tx3);margin-top:10px}
+
+.leaflet-popup-content-wrapper{border-radius:10px!important;box-shadow:0 4px 20px rgba(0,0,0,.15)!important}
+.leaflet-popup-content{margin:10px 14px!important;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.pop-nm{font-weight:700;color:#1a1a1a;margin-bottom:2px}
+.pop-tm{font-size:11px;color:#888}
+.pop-tip{font-size:11px;color:#555;margin-top:3px;line-height:1.5;max-width:200px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="map-wrap">
+  <div id="map"></div>
+  <div id="map-filter">
+    <button class="mf on" data-d="all" onclick="filterDay('all')">全部</button>
+    <button class="mf" data-d="0" onclick="filterDay(0)">Day 1</button>
+    <button class="mf" data-d="1" onclick="filterDay(1)">Day 2</button>
+    <button class="mf" data-d="2" onclick="filterDay(2)">Day 3</button>
+    <button class="mf" data-d="3" onclick="filterDay(3)">Day 4</button>
+  </div>
+</div>
+
+<div id="sidebar">
+<div id="tabs">
+  <div class="tab on" onclick="sw(0)">Day 1 · 4/6</div>
+  <div class="tab" onclick="sw(1)">Day 2 · 4/7</div>
+  <div class="tab" onclick="sw(2)">Day 3 · 4/8</div>
+  <div class="tab" onclick="sw(3)">Day 4 · 4/9</div>
+  <div class="tab" onclick="sw(4)">💡 貼士</div>
+</div>
+
+<!-- DAY 1 -->
+<div class="panel on" id="p0">
+<div class="dh"><div class="dt">東海岸 · 貝果 → 城山 → 夜晚落火</div><div class="ds">住宿：東部 Airbnb</div></div>
+<div class="tl">
+
+<div class="st" id="s0" onclick="focusStop(0)"><div class="dot c"></div><div class="card">
+<div class="ct"><span class="tm">09:25–10:30</span><span class="nm">樂天租車取車</span><span class="b bc">租車</span></div>
+<div class="rb">
+<div class="rr"><span class="rl">預約編號</span><span class="rv">2622206787</span></div>
+<div class="rr"><span class="rl">車型</span><span class="rv">電動車 (EV)</span></div>
+<div class="rr"><span class="rl">保險</span><span class="rv">CDW · 0 KRW 自付額</span></div>
+<div class="rr"><span class="rl">總金額</span><span class="rv red">305,100 KRW</span></div>
+</div>
+<div class="stp"><div class="sn">1</div><span>入境大廳找 <strong>5 號出口</strong></span></div>
+<div class="stp"><div class="sn">2</div><span>過馬路右轉直走到底，搭乘<strong>樂天接駁車</strong></span></div>
+<div class="stp"><div class="sn">3</div><span>帶<strong>護照</strong>＋<strong>國際駕照</strong>辦手續付款</span></div>
+<div class="stp"><div class="sn">4</div><span>依單據取車，<strong>鑰匙在車上</strong></span></div>
+</div></div>
+
+<div class="st" id="s1" onclick="focusStop(1)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">11:00–13:00</span><span class="nm">倫敦貝果博物館</span><span class="b bf">早午餐</span></div>
+<div class="tip">東部구좌읍 ★4.2 · 08:00–18:00。抵達立刻取號候位，等待時可逛旁邊 Cafe Layered 看海喝咖啡。</div>
+<div class="or"><div class="or-title">候位時間可以順逛</div>
+<div class="or-opt"><span class="pill">★</span><span><strong>Cafe Layered</strong>（隔壁）— 邊等號邊看海</span></div>
+</div></div></div>
+
+<div class="st" id="s2" onclick="focusStop(2)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">13:30–14:00</span><span class="nm">Audrant Bakery 大蒜麵包</span><span class="b bf">點心</span></div>
+<div class="tip">距倫敦貝果僅 <strong>2 公里</strong>，順路必停！★4.4 · 大蒜麵包現烤限量，07:00–22:00。</div>
+</div></div>
+
+<div class="st" id="s3" onclick="focusStop(3)"><div class="dot s"></div><div class="card">
+<div class="ct"><span class="tm">15:00–16:30</span><span class="nm">城山日出峰</span><span class="b bs">景點</span></div>
+<div class="tip">傍晚氣溫舒適。可選免費路線（海女灣拍照）或付費攻頂（40–50 分鐘，俯瞰火山口）。</div>
+<div class="or"><div class="or-title">附近咖啡廳</div>
+<div class="or-opt"><span class="pill">★4.6</span><span><strong>Fritz Coffee</strong> — 正對面，最佳觀景，08:00–19:00</span></div>
+</div></div></div>
+
+<div class="st" id="s4" onclick="focusStop(4)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">17:00–18:30</span><span class="nm">白帶魚晚餐</span><span class="b bf">晚餐 🔥</span></div>
+<div class="or"><div class="or-title">城山區域 二選一</div>
+<div class="or-opt"><span class="pill">選A</span><span><strong>성산바다</strong> — 紅通通辣醬帶魚，在地老店</span></div>
+<div class="or-opt"><span class="pill b2">選B</span><span><strong>CoCoMAMA</strong> — 龍蝦海鮮，可觀海，週四休</span></div>
+</div></div></div>
+
+<div class="st" id="s5" onclick="focusStop(5)"><div class="dot n"></div><div class="card">
+<div class="ct"><span class="tm">20:30–22:30</span><span class="nm">Flowave 落火燈光秀</span><span class="b bn">夜間活動</span></div>
+<div class="tip">靈林邑，從城山開車約 <strong>1 小時</strong>，夜晚回東部 Airbnb 方向順路。</div>
+<div class="warn">⚠ 若晚餐後體力不足可跳過</div>
+</div></div>
+
+</div></div>
+
+<!-- DAY 2 -->
+<div class="panel" id="p1">
+<div class="dh"><div class="dt">牛島跳島一日遊</div><div class="ds">住宿：濟州市區 Airbnb</div></div>
+<div class="tl">
+
+<div class="st" id="s6" onclick="focusStop(6)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">08:00–09:00</span><span class="nm">城山港早餐</span><span class="b bf">早餐</span></div>
+<div class="or"><div class="or-title">城山港附近 二選一</div>
+<div class="or-opt"><span class="pill">選A</span><span><strong>해물뚝배기</strong> — 熱騰騰海鮮石鍋湯</span></div>
+<div class="or-opt"><span class="pill b2">選B</span><span><strong>Fritz Coffee</strong> — 若 Day 1 沒去，可在這看日出峰景</span></div>
+</div></div></div>
+
+<div class="st" id="s7" onclick="focusStop(7)"><div class="dot s"></div><div class="card">
+<div class="ct"><span class="tm">09:30–15:30</span><span class="nm">牛島一日遊</span><span class="b bs">景點</span></div>
+<div class="tip">城山港搭渡輪約 15 分鐘。上島後租電動自行車 / 微型電動車環島。</div>
+<span class="tag">西濱白沙珊瑚沙灘</span><span class="tag">下高水洞海水浴場</span><span class="tag">牛島峰</span>
+<div class="or" style="margin-top:8px"><div class="or-title">牛島花生霜淇淋 二選一</div>
+<div class="or-opt"><span class="pill">推薦</span><span><strong>Blanc Rocher</strong> — 氛圍佳，海景座位 ★4.2 · 10:00–17:00</span></div>
+<div class="or-opt"><span class="pill b2">備選</span><span><strong>牛島王子</strong> — 珊瑚沙灘旁 ★3.3</span></div>
+</div>
+<div class="or" style="margin-top:6px"><div class="or-title">牛島午餐 二選一</div>
+<div class="or-opt"><span class="pill">選A</span><span><strong>CoCoMAMA</strong>（若 Day 1 未去）</span></div>
+<div class="or-opt"><span class="pill b2">選B</span><span><strong>明珍鮑魚</strong>（回程途中）— 週二休</span></div>
+</div></div></div>
+
+<div class="st" id="s8" onclick="focusStop(8)"><div class="dot t"></div><div class="card">
+<div class="ct"><span class="tm">15:30–17:00</span><span class="nm">返回城山港 → 市區 Check-in</span><span class="b bt">移動</span></div>
+<div class="tip">搭船回城山港，開車約 1 小時至市區 Airbnb。</div>
+</div></div>
+
+<div class="st" id="s9" onclick="focusStop(9)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">17:30–18:30</span><span class="nm">東門傳統市場 + SOLBRE 海鹽可頌</span><span class="b bf">逛市場</span></div>
+<div class="tip">Check-in 後步行或短程開車即達。SOLBRE 在東門市場1號出口，海鹽可頌＋霜淇淋，★4.5，10:30–19:00。</div>
+</div></div>
+
+<div class="st" id="s10" onclick="focusStop(10)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">19:00–21:00</span><span class="nm">黑毛豬燒肉</span><span class="b bf">晚餐 🔥</span></div>
+<div class="or"><div class="or-title">黑豬肉 三選一</div>
+<div class="or-opt"><span class="pill">選A</span><span><strong>제주삼춘</strong>（朝天邑）— ★5.0 員工代烤，14:00–23:00</span></div>
+<div class="or-opt"><span class="pill b2">選B</span><span><strong>島民商會</strong>（月汀里）— ★4.0，11:00–22:00</span></div>
+<div class="or-opt"><span class="pill b2">選C</span><span><strong>西門市場精肉食堂</strong>（市區）— 自選肉代烤</span></div>
+</div></div></div>
+
+</div></div>
+
+<!-- DAY 3 -->
+<div class="panel" id="p2">
+<div class="dh"><div class="dt">1100 高地 → 羽球採買 → 涯月海景</div><div class="ds">住宿：市區 Airbnb（同前）</div></div>
+<div class="tl">
+
+<div class="st" id="s11" onclick="focusStop(11)"><div class="dot s"></div><div class="card">
+<div class="ct"><span class="tm">08:30–12:00</span><span class="nm">漢拏山 1100 高地</span><span class="b bs">景點</span></div>
+<div class="tip">開車至 1100 고지（海拔 1100m），沿附近步道輕鬆健行無需預約。春季殘雪與新綠交織。</div>
+<span class="tag">1100 高地濕地步道</span>
+<div class="or" style="margin-top:8px"><div class="or-title">高地 GS25 打卡</div>
+<div class="or-opt"><span class="pill">★</span><span><strong>GS25 1100 高地店</strong> — 全濟州海拔最高 GS25，06:00–16:30</span></div>
+</div></div></div>
+
+<div class="st" id="s12" onclick="focusStop(12)"><div class="dot p"></div><div class="card">
+<div class="ct"><span class="tm">13:30–14:30</span><span class="nm">린스포츠 Lin Sports</span><span class="b bp">購物 · 第一站</span></div>
+<div class="tip">營業至 18:00，優先前往。오라삼동 2262-3</div>
+</div></div>
+
+<div class="st" id="s13" onclick="focusStop(13)"><div class="dot p"></div><div class="card">
+<div class="ct"><span class="tm">14:30–15:30</span><span class="nm">Yonex Nice Minton 나이스민턴</span><span class="b bp">購物 · 第二站</span></div>
+<div class="tip">營業至 19:00。노형동 729-4</div>
+</div></div>
+
+<div class="st" id="s14" onclick="focusStop(14)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">16:00–17:00</span><span class="nm">Noraba 章魚海鮮拉麵</span><span class="b bf">下午輕食</span></div>
+<div class="tip">★4.0 · 章魚海鮮拉麵，10:00–14:00 / 15:00–16:30。</div>
+<div class="warn">⚠ 每日僅開放至 16:30，時間緊湊</div>
+</div></div>
+
+<div class="st" id="s15" onclick="focusStop(15)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">16:30–17:30</span><span class="nm">Haejigae Cafe 해지개</span><span class="b bf">下午茶</span></div>
+<div class="tip">涯月咖啡街韓屋海景咖啡廳，夕陽時段景色絕美。推薦艾草糕點或花生拿鐵。</div>
+</div></div>
+
+<div class="st" id="s16" onclick="focusStop(16)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">19:00–20:30</span><span class="nm">제주따이 Jejuttai 晚餐</span><span class="b bf">晚餐 🔥</span></div>
+<div class="tip">老衡洞，招牌鮑魚石鍋飯（전복돌솥밥）必點。</div>
+<div class="or" style="margin-top:6px"><div class="or-title">若想換口味 同區備選</div>
+<div class="or-opt"><span class="pill b2">備選</span><span><strong>생선회 九宮格</strong>（老衡洞）— ★4.3 生魚片九宮格</span></div>
+</div></div></div>
+
+<div class="st" id="s17" onclick="focusStop(17)"><div class="dot n"></div><div class="card">
+<div class="ct"><span class="tm">21:00 後</span><span class="nm">漢拏樹木園夜市</span><span class="b bn">夜間活動</span></div>
+<div class="tip">距市區 Airbnb 約 10 分鐘。童話感燈光樹下市集，18:00–23:00。晚餐後散步過去剛好！</div>
+</div></div>
+
+</div></div>
+
+<!-- DAY 4 -->
+<div class="panel" id="p3">
+<div class="dh"><div class="dt">滿載而歸</div><div class="ds">IT655 10:40 起飛 → 台灣 11:45</div></div>
+<div class="tl">
+
+<div class="st" id="s18" onclick="focusStop(18)"><div class="dot f"></div><div class="card">
+<div class="ct"><span class="tm">07:00–07:45</span><span class="nm">早餐</span><span class="b bf">早餐</span></div>
+<div class="or"><div class="or-title">市區輕鬆解決</div>
+<div class="or-opt"><span class="pill">選A</span><span><strong>Saewoori 鮮蝦裡</strong> — 皮皮蝦飯捲，09:00 開</span></div>
+<div class="or-opt"><span class="pill b2">選B</span><span><strong>便利商店</strong>（CU / GS25）— 快速解決</span></div>
+</div></div></div>
+
+<div class="st" id="s19" onclick="focusStop(19)"><div class="dot c"></div><div class="card">
+<div class="ct"><span class="tm">08:00–08:30</span><span class="nm">樂天租車還車</span><span class="b bc">還車</span></div>
+<div class="tip">地點：Jeju Auto House（92, Yonghae-ro）</div>
+<div class="stp"><div class="sn">!</div><span>出發前先找充電站加滿電（Naver Map 搜「전기차 충전」）</span></div>
+<div class="stp"><div class="sn">1</div><span>開車至 Jeju Auto House 還車</span></div>
+<div class="stp"><div class="sn">2</div><span>搭接駁車前往濟州機場</span></div>
+</div></div>
+
+<div class="st" id="s20" onclick="focusStop(20)"><div class="dot p"></div><div class="card">
+<div class="ct"><span class="tm">08:45–10:40</span><span class="nm">報到 & 免稅店採買</span><span class="b bp">購物</span></div>
+<div class="tip">推薦：濟州橘子巧克力、橘子塔。若沒買到 SOLBRE，機場內也有濟州名物可補買。</div>
+</div></div>
+
+<div class="st" id="s21" onclick="focusStop(21)"><div class="dot t"></div><div class="card">
+<div class="ct"><span class="tm">10:40</span><span class="nm">IT655 起飛，平安回台灣！✈</span><span class="b bt">飛行</span></div>
+</div></div>
+
+</div></div>
+
+<!-- TIPS -->
+<div class="panel" id="p4">
+<div class="dh"><div class="dt">旅遊貼士 & 注意事項</div></div>
+<div class="tbox"><div class="tt">取車必帶</div><div class="tr"><span>📋</span><span><strong>護照</strong>＋<strong>國際駕照</strong>，缺一不可。</span></div></div>
+<div class="tbox"><div class="tt">電動車充電</div><div class="tr"><span>⚡</span><span>留意充電站，4/9 還車前加滿電。Kakao / Naver Map 搜「전기차 충전」。</span></div></div>
+<div class="tbox"><div class="tt">休假日整理</div>
+<div class="tr"><span>⚠</span><span><strong>忠明亭</strong> 白帶魚 — 週二休</span></div>
+<div class="tr"><span>⚠</span><span><strong>明珍鮑魚</strong> — 週二休（Day 2 是週一 4/7 可去 ✓）</span></div>
+<div class="tr"><span>⚠</span><span><strong>CoCoMAMA</strong> — 週四休（Day 1–2 均可去 ✓）</span></div>
+<div class="tr"><span>⚠</span><span><strong>Noraba</strong> 拉麵 — 每日僅至 16:30，時間非常緊</span></div>
+</div>
+<div class="tbox"><div class="tt">牛島注意</div><div class="tr"><span>🚗</span><span>一般租車不可開上牛島，車停城山港停車場，上島後租島上交通工具。</span></div></div>
+<div class="tbox"><div class="tt">導航</div><div class="tr"><span>🗺</span><span>韓國 Google Maps 無法導航！下載 <strong>Naver Map</strong> 或 <strong>Kakao Map</strong>。</span></div></div>
+<div class="tbox"><div class="tt">天氣穿著</div><div class="tr"><span>🧥</span><span>4 月初約 10–15°C，1100 高地更低約 5–8°C，備防風外套＋運動鞋。</span></div></div>
+<div class="flt">
+  <span>✈ 去程 IT654 06:40→09:25</span>
+  <span>✈ 回程 IT655 10:40→11:45</span>
+  <span>🚗 樂天租車 · 2622206787</span>
+</div>
+</div>
+
+</div><!-- /sidebar -->
+</div><!-- /app -->
+
+<script>
+const STOPS = [
+  {id:0,  day:0, lat:33.5070, lng:126.4920, name:"樂天租車取車",           time:"09:25–10:30", color:"#378ADD", tip:"入境大廳 5 號出口 → 樂天接駁車"},
+  {id:1,  day:0, lat:33.5448, lng:126.8321, name:"倫敦貝果博物館",          time:"11:00–13:00", color:"#EF9F27", tip:"★4.2 구좌읍 · 08:00–18:00"},
+  {id:2,  day:0, lat:33.5373, lng:126.8192, name:"Audrant Bakery 大蒜麵包", time:"13:30–14:00", color:"#EF9F27", tip:"距倫敦貝果約 2km · ★4.4"},
+  {id:3,  day:0, lat:33.4581, lng:126.9425, name:"城山日出峰",              time:"15:00–16:30", color:"#1D9E75", tip:"免費路線 or 付費攻頂 · Fritz Coffee 對面"},
+  {id:4,  day:0, lat:33.4640, lng:126.9328, name:"白帶魚晚餐",              time:"17:00–18:30", color:"#EF9F27", tip:"성산바다 or CoCoMAMA（週四休）"},
+  {id:5,  day:0, lat:33.3900, lng:126.5200, name:"Flowave 落火燈光秀",      time:"20:30–22:30", color:"#D85A30", tip:"靈林邑 · 寫願望掛落火燈"},
+  {id:6,  day:1, lat:33.4620, lng:126.9338, name:"城山港早餐",              time:"08:00–09:00", color:"#EF9F27", tip:"해물뚝배기 or Fritz Coffee"},
+  {id:7,  day:1, lat:33.5047, lng:126.9713, name:"牛島一日遊",              time:"09:30–15:30", color:"#1D9E75", tip:"渡輪約 15 分鐘 · 電動自行車環島"},
+  {id:8,  day:1, lat:33.4620, lng:126.9338, name:"返回城山港 → Check-in",  time:"15:30–17:00", color:"#888",    tip:"開車約 1 小時至市區 Airbnb"},
+  {id:9,  day:1, lat:33.5131, lng:126.5296, name:"東門傳統市場 + SOLBRE",   time:"17:30–18:30", color:"#EF9F27", tip:"SOLBRE 海鹽可頌 ★4.5 · 10:30–19:00"},
+  {id:10, day:1, lat:33.5059, lng:126.5270, name:"黑毛豬燒肉",              time:"19:00–21:00", color:"#EF9F27", tip:"제주삼춘 ★5.0 or 島民商會 or 西門市場"},
+  {id:11, day:2, lat:33.3617, lng:126.4894, name:"漢拏山 1100 高地",        time:"08:30–12:00", color:"#1D9E75", tip:"海拔 1100m · 步道健行 · 最高 GS25"},
+  {id:12, day:2, lat:33.4968, lng:126.5232, name:"린스포츠 Lin Sports",     time:"13:30–14:30", color:"#7F77DD", tip:"오라삼동 · 營業至 18:00"},
+  {id:13, day:2, lat:33.4892, lng:126.5012, name:"Yonex Nice Minton",       time:"14:30–15:30", color:"#7F77DD", tip:"노형동 · 營業至 19:00"},
+  {id:14, day:2, lat:33.4707, lng:126.3638, name:"Noraba 章魚拉麵",         time:"16:00–17:00", color:"#EF9F27", tip:"★4.0 · 僅至 16:30，時間緊湊"},
+  {id:15, day:2, lat:33.4698, lng:126.3590, name:"Haejigae Cafe 해지개",    time:"16:30–17:30", color:"#EF9F27", tip:"涯月韓屋海景咖啡廳 · 夕陽絕美"},
+  {id:16, day:2, lat:33.4886, lng:126.5024, name:"Jejuttai 晚餐",           time:"19:00–20:30", color:"#EF9F27", tip:"老衡洞 · 鮑魚石鍋飯必點"},
+  {id:17, day:2, lat:33.4834, lng:126.5118, name:"漢拏樹木園夜市",          time:"21:00 後",    color:"#D85A30", tip:"童話燈光市集 · 18:00–23:00"},
+  {id:18, day:3, lat:33.5059, lng:126.5270, name:"早餐",                    time:"07:00–07:45", color:"#EF9F27", tip:"Saewoori 皮皮蝦飯捲 or 便利商店"},
+  {id:19, day:3, lat:33.5074, lng:126.4848, name:"樂天租車還車",            time:"08:00–08:30", color:"#378ADD", tip:"Jeju Auto House · 92 Yonghae-ro"},
+  {id:20, day:3, lat:33.5112, lng:126.4929, name:"濟州機場 報到 & 免稅店",  time:"08:45–10:40", color:"#7F77DD", tip:"橘子巧克力 · 橘子塔"},
+  {id:21, day:3, lat:33.5112, lng:126.4929, name:"IT655 起飛 ✈",           time:"10:40",       color:"#888",    tip:"平安回台灣！"},
+];
+
+const DAY_COLORS = ["#378ADD","#1D9E75","#7F77DD","#EF9F27"];
+const DAY_NAMES  = ["Day 1","Day 2","Day 3","Day 4"];
+
+// ── Init map ──
+const map = L.map('map', {zoomControl: false}).setView([33.48, 126.65], 10);
+L.control.zoom({position: 'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors', maxZoom: 19
+}).addTo(map);
+
+// ── Route lines ──
+[0,1,2,3].forEach(d => {
+  const pts = STOPS.filter(s => s.day === d).map(s => [s.lat, s.lng]);
+  L.polyline(pts, {color: DAY_COLORS[d], weight: 2.5, opacity: 0.55, dashArray: '6 5'}).addTo(map);
+});
+
+// ── Markers ──
+function makeIcon(color, dayNum) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="36" viewBox="0 0 30 36">
+    <path d="M15 0C6.716 0 0 6.716 0 15c0 9.941 13.5 21 15 21S30 24.941 30 15C30 6.716 23.284 0 15 0z" fill="${color}"/>
+    <circle cx="15" cy="15" r="7" fill="white" fill-opacity="0.9"/>
+    <text x="15" y="19" text-anchor="middle" font-size="9" font-weight="700" fill="${color}" font-family="-apple-system,sans-serif">${dayNum}</text>
+  </svg>`;
+  return L.divIcon({html: svg, iconSize: [30,36], iconAnchor: [15,36], popupAnchor: [0,-38], className: ''});
+}
+
+const markers = STOPS.map(s => {
+  const m = L.marker([s.lat, s.lng], {icon: makeIcon(DAY_COLORS[s.day], s.day + 1)})
+    .bindPopup(`<div class="pop-nm">${s.name}</div><div class="pop-tm">${DAY_NAMES[s.day]} · ${s.time}</div>${s.tip ? `<div class="pop-tip">${s.tip}</div>` : ''}`, {maxWidth: 220})
+    .addTo(map);
+  m.on('click', () => highlightCard(s.id));
+  return m;
+});
+
+// ── Tab switching ──
+let currentDay = 0;
+function sw(i) {
+  currentDay = i;
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('on', i===j));
+  document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('on', i===j));
+  if (i < 4) { filterDay(i); fitDay(i); }
+}
+
+// ── Day filter ──
+function filterDay(d) {
+  document.querySelectorAll('.mf').forEach(b => b.classList.toggle('on',
+    b.dataset.d === String(d) || (d === 'all' && b.dataset.d === 'all')));
+  markers.forEach((m, i) => {
+    const show = d === 'all' || STOPS[i].day === d;
+    show ? map.addLayer(m) : map.removeLayer(m);
+  });
+  if (d !== 'all') fitDay(d);
+  else map.setView([33.48, 126.65], 10);
+}
+
+function fitDay(d) {
+  const pts = STOPS.filter(s => s.day === d).map(s => [s.lat, s.lng]);
+  if (pts.length) map.fitBounds(pts, {padding: [30,30], maxZoom: 13});
+}
+
+// ── Focus card → map ──
+let activeCard = null;
+function focusStop(id) {
+  if (activeCard !== null) document.getElementById('s'+activeCard)?.classList.remove('active');
+  activeCard = id;
+  document.getElementById('s'+id)?.classList.add('active');
+  document.getElementById('s'+id)?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  const s = STOPS[id];
+  map.setView([s.lat, s.lng], 14, {animate: true});
+  markers[id].openPopup();
+}
+
+// ── Focus map → card ──
+function highlightCard(id) {
+  if (activeCard !== null) document.getElementById('s'+activeCard)?.classList.remove('active');
+  activeCard = id;
+  document.getElementById('s'+id)?.classList.add('active');
+  const day = STOPS[id].day;
+  if (day !== currentDay && day < 4) {
+    currentDay = day;
+    document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('on', j===day));
+    document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('on', j===day));
+  }
+  setTimeout(() => document.getElementById('s'+id)?.scrollIntoView({behavior:'smooth', block:'nearest'}), 80);
+}
+
+// Init
+filterDay(0);
+fitDay(0);
+</script>
+</body>
+</html>
