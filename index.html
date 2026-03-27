@@ -27,8 +27,26 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 #app{display:flex;flex-direction:column;height:100dvh}
 #map-wrap{flex-shrink:0;height:42dvh;position:relative}
 #map{width:100%;height:100%}
-#sidebar{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
+#sidebar{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-height:0}
 @media(min-width:700px){#app{flex-direction:row}#map-wrap{width:55%;height:100dvh}#sidebar{width:45%;height:100dvh}}
+
+/* ── Currency Calculator ── */
+#calc{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 12px;flex-shrink:0}
+#calc-row{display:flex;align-items:center;gap:8px}
+.calc-sym{font-size:15px;font-weight:700;color:var(--tx3)}
+#krw-in{flex:1;min-width:0;padding:7px 10px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);font-size:15px;background:var(--bg);color:var(--tx1);outline:none;-moz-appearance:textfield}
+#krw-in::-webkit-outer-spin-button,#krw-in::-webkit-inner-spin-button{-webkit-appearance:none}
+#krw-in:focus{border-color:#378ADD}
+.calc-arrow{font-size:14px;color:var(--tx3);flex-shrink:0}
+#twd-out{font-size:16px;font-weight:700;color:#1D9E75;flex-shrink:0;min-width:90px;text-align:right}
+#rate-toggle{font-size:11px;color:var(--tx3);background:none;border:none;cursor:pointer;padding:2px 4px;flex-shrink:0;text-decoration:underline}
+#rate-row{display:none;align-items:center;gap:6px;margin-top:7px;font-size:12px;color:var(--tx2)}
+#rate-row.show{display:flex}
+#rate-in{width:70px;padding:4px 8px;border:1px solid var(--border2);border-radius:6px;font-size:13px;background:var(--bg);color:var(--tx1);outline:none;text-align:center}
+#rate-in:focus{border-color:#378ADD}
+.rate-hint{font-size:11px;color:var(--tx3);margin-left:4px}
+
+/* ── Map filter ── */
 #map-filter{position:absolute;top:8px;left:8px;z-index:1000;display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 16px)}
 .mf{font-size:11px;padding:4px 10px;border-radius:14px;border:none;cursor:pointer;font-weight:600;background:rgba(255,255,255,.92);color:#333;backdrop-filter:blur(4px);box-shadow:0 1px 6px rgba(0,0,0,.2);transition:all .12s}
 .mf.on{color:#fff}
@@ -37,15 +55,21 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .mf[data-d="2"].on{background:#7F77DD}
 .mf[data-d="3"].on{background:#EF9F27}
 .mf[data-d="all"].on{background:#333}
+
+/* ── Tabs ── */
 #tabs{display:flex;gap:6px;padding:10px 12px 0;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
 .tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);font-size:13px;cursor:pointer;background:var(--bg);color:var(--tx2);white-space:nowrap;flex-shrink:0;font-weight:500;transition:all .15s}
 .tab.on{background:var(--tx1);color:var(--bg);border-color:transparent}
+
+/* ── Panels ── */
 .panel{display:none;padding:10px 12px 24px;flex-direction:column;gap:0}
 .panel.on{display:flex}
 .dh{padding:8px 0 12px}
 .dt{font-size:16px;font-weight:600;color:var(--tx1)}
 .ds{font-size:12px;color:var(--tx3);margin-top:2px}
+
+/* ── Timeline ── */
 .tl{position:relative;padding-left:26px}
 .tl::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:1.5px;background:var(--border)}
 .st{position:relative;margin-bottom:10px;cursor:pointer}
@@ -61,7 +85,6 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .st:hover .card,.st.active .card{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.08)}
 .st.active .card{box-shadow:0 3px 16px rgba(0,0,0,.12)}
 .ct{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px}
-.tm{font-size:11px;color:var(--tx3);min-width:75px}
 .nm{font-size:14px;font-weight:600;color:var(--tx1)}
 .b{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500}
 .bf{background:var(--food-bg);color:var(--food-tx)}
@@ -113,13 +136,32 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div>
 
 <div id="sidebar">
-<div id="tabs">
-  <div class="tab on" onclick="sw(0)">Day 1 · 4/6</div>
-  <div class="tab" onclick="sw(1)">Day 2 · 4/7</div>
-  <div class="tab" onclick="sw(2)">Day 3 · 4/8</div>
-  <div class="tab" onclick="sw(3)">Day 4 · 4/9</div>
-  <div class="tab" onclick="sw(4)">💡 貼士</div>
-</div>
+
+  <!-- 匯率計算機 -->
+  <div id="calc">
+    <div id="calc-row">
+      <span class="calc-sym">₩</span>
+      <input id="krw-in" type="number" inputmode="numeric" placeholder="輸入韓幣金額">
+      <span class="calc-arrow">→</span>
+      <span id="twd-out">NT$ —</span>
+      <button id="rate-toggle" onclick="toggleRate()">調整匯率</button>
+    </div>
+    <div id="rate-row">
+      <span>1 TWD =</span>
+      <input id="rate-in" type="number" value="43" step="0.5" min="1">
+      <span>KRW</span>
+      <span class="rate-hint" id="rate-hint">（更新中…）</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div id="tabs">
+    <div class="tab on" onclick="sw(0)">Day 1 · 4/6</div>
+    <div class="tab" onclick="sw(1)">Day 2 · 4/7</div>
+    <div class="tab" onclick="sw(2)">Day 3 · 4/8</div>
+    <div class="tab" onclick="sw(3)">Day 4 · 4/9</div>
+    <div class="tab" onclick="sw(4)">💡 貼士</div>
+  </div>
 
 <!-- DAY 1 -->
 <div class="panel on" id="p0">
@@ -130,7 +172,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="tl">
 
 <div class="st" id="s0" onclick="focusStop(0)"><div class="dot c"></div><div class="card">
-<div class="ct"><span class="tm">09:25–10:30</span><span class="nm">樂天租車取車</span><span class="b bc">租車</span></div>
+<div class="ct"><span class="nm">樂天租車取車</span><span class="b bc">租車</span></div>
 <div class="rb">
 <div class="rr"><span class="rl">預約編號</span><span class="rv">2622206787</span></div>
 <div class="rr"><span class="rl">車型</span><span class="rv">電動車 (EV)</span></div>
@@ -144,34 +186,34 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div></div>
 
 <div class="st" id="s1" onclick="focusStop(1)"><div class="dot p"></div><div class="card">
-<div class="ct"><span class="tm">10:30–11:30</span><span class="nm">린스포츠 Lin Sports</span><span class="b bp">購物</span></div>
-<div class="tip">취차 후 첫 번째 목적지。오라삼동 2262-3 · 營業至 18:00，先買再往東出發。</div>
+<div class="ct"><span class="nm">린스포츠 Lin Sports</span><span class="b bp">購物</span></div>
+<div class="tip">오라삼동 2262-3 · 羽球購物第一站 · 營業至 18:00，取車後先買再往東出發。</div>
 </div></div>
 
 <div class="st" id="s2" onclick="focusStop(2)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">12:15–12:45</span><span class="nm">Audrant Bakery 大蒜麵包</span><span class="b bf">點心</span></div>
+<div class="ct"><span class="nm">Audrant Bakery 大蒜麵包</span><span class="b bf">點心</span></div>
 <div class="tip">★4.4 · 大蒜麵包現烤限量，一到就買！07:00–22:00。</div>
 </div></div>
 
 <div class="st" id="s3" onclick="focusStop(3)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">13:00–15:00</span><span class="nm">倫敦貝果博物館</span><span class="b bf">早午餐</span></div>
+<div class="ct"><span class="nm">倫敦貝果博物館</span><span class="b bf">早午餐</span></div>
 <div class="tip">구좌읍 ★4.2 · 08:00–18:00。抵達立刻取號候位，等待時可逛隔壁 Cafe Layered 看海喝咖啡。</div>
 <div class="or"><div class="or-title">候位時間可順逛</div>
 <div class="or-opt"><span class="pill">★</span><span><strong>Cafe Layered</strong>（隔壁）— 邊等號邊看海</span></div>
 </div></div></div>
 
 <div class="st" id="s4" onclick="focusStop(4)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">15:30–16:30</span><span class="nm">明珍鮑魚 명진전복</span><span class="b bf">中餐 🔥</span></div>
+<div class="ct"><span class="nm">明珍鮑魚 명진전복</span><span class="b bf">中餐 🔥</span></div>
 <div class="tip">구좌읍 행원리 · 鮑魚石鍋飯 / 烤鮑魚。<strong>週二休</strong> · 09:30–20:30。</div>
 </div></div>
 
 <div class="st" id="s5" onclick="focusStop(5)"><div class="dot t"></div><div class="card">
-<div class="ct"><span class="tm">16:30–17:30</span><span class="nm">Airbnb Check-in</span><span class="b bt">住宿</span></div>
+<div class="ct"><span class="nm">Airbnb Check-in</span><span class="b bt">住宿</span></div>
 <div class="tip">1800-1 Haemajihaean-ro, Gujwa-eup · 放好行李再出發 Snoopy Garden。</div>
 </div></div>
 
 <div class="st" id="s6" onclick="focusStop(6)"><div class="dot s"></div><div class="card">
-<div class="ct"><span class="tm">17:30–19:00</span><span class="nm">Snoopy Garden</span><span class="b bs">景點</span></div>
+<div class="ct"><span class="nm">Snoopy Garden</span><span class="b bs">景點</span></div>
 <div class="tip">제주시 구좌읍 금백조로 930 · 📞 064-903-1111</div>
 <div class="rb">
 <div class="rr"><span class="rl">開放時間</span><span class="rv">09:00–19:00（最後入場 18:00）</span></div>
@@ -180,17 +222,17 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="rr"><span class="rl">兒童</span><span class="rv">13,000 KRW</span></div>
 </div>
 <span class="tag">Peanuts 5大主題館</span><span class="tag">免費停車</span><span class="tag">Peanuts Store</span>
-<div class="warn">⚠ 最後入場 18:00，17:30前務必入園</div>
+<div class="warn">⚠ 最後入場 18:00，務必提早入園</div>
 </div></div>
 
 <div class="st" id="s7" onclick="focusStop(7)"><div class="dot s"></div><div class="card">
-<div class="ct"><span class="tm">看時間</span><span class="nm">城山日出峰（可選）</span><span class="b bs">景點</span></div>
+<div class="ct"><span class="nm">城山日出峰（可選）</span><span class="b bs">景點</span></div>
 <div class="tip">時間不夠可隔天早上再去。傍晚光線漂亮，Fritz Coffee 對面有絕佳觀景位。</div>
-<div class="warn">⚠ 若明天早起打算去，今天可省略</div>
+<div class="warn">⚠ 若明天打算早去，今天可省略</div>
 </div></div>
 
 <div class="st" id="s8" onclick="focusStop(8)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">19:30–21:00</span><span class="nm">道民商会 구좌 행원점</span><span class="b bf">晚餐 🔥</span></div>
+<div class="ct"><span class="nm">道民商会 구좌 행원점</span><span class="b bf">晚餐 🔥</span></div>
 <div class="tip">제주시 구좌읍 행원리 1537-20 · 月汀里海水浴場附近。</div>
 </div></div>
 
@@ -205,19 +247,19 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="tl">
 
 <div class="st" id="s9" onclick="focusStop(9)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">08:00–09:00</span><span class="nm">城山港早餐</span><span class="b bf">早餐</span></div>
+<div class="ct"><span class="nm">城山港早餐</span><span class="b bf">早餐</span></div>
 <div class="or"><div class="or-title">城山港附近 二選一</div>
 <div class="or-opt"><span class="pill">選A</span><span><strong>Orrin Cafe</strong> — 城山港旁海景咖啡廳</span></div>
 <div class="or-opt"><span class="pill b2">選B</span><span><strong>Fritz Coffee</strong> — 城山日出峰對面，★4.6</span></div>
 </div></div></div>
 
 <div class="st" id="s10" onclick="focusStop(10)"><div class="dot s"></div><div class="card">
-<div class="ct"><span class="tm">09:00–09:45</span><span class="nm">城山日出峰（若昨日未去）</span><span class="b bs">景點</span></div>
+<div class="ct"><span class="nm">城山日出峰（若昨日未去）</span><span class="b bs">景點</span></div>
 <div class="tip">Day 1 已去則跳過，直接前往城山港搭船。付費攻頂俯瞰火山口，約 40–50 分鐘。</div>
 </div></div>
 
 <div class="st" id="s11" onclick="focusStop(11)"><div class="dot s"></div><div class="card">
-<div class="ct"><span class="tm">09:30–15:30</span><span class="nm">牛島半日遊</span><span class="b bs">景點</span></div>
+<div class="ct"><span class="nm">牛島半日遊</span><span class="b bs">景點</span></div>
 <div class="tip">城山港搭渡輪約 15 分鐘。上島後租電動自行車 / 微型電動車，<strong>預計 15:30 離島</strong>。</div>
 <span class="tag">西濱白沙珊瑚沙灘</span><span class="tag">下高水洞海水浴場</span><span class="tag">牛島峰</span>
 <div class="or" style="margin-top:8px"><div class="or-title">島上必吃</div>
@@ -231,23 +273,23 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div></div></div>
 
 <div class="st" id="s12" onclick="focusStop(12)"><div class="dot s"></div><div class="card">
-<div class="ct"><span class="tm">16:45–17:15</span><span class="nm">正房瀑布（可選）</span><span class="b bs">景點</span></div>
+<div class="ct"><span class="nm">正房瀑布（可選）</span><span class="b bs">景點</span></div>
 <div class="tip">從城山開車約 1 小時 10 分。直接入海的壯觀瀑布，門票成人 2,000 KRW。</div>
 <div class="warn">⚠ 若時間太趕可跳過，直接前往西歸浦偶來市場</div>
 </div></div>
 
 <div class="st" id="s13" onclick="focusStop(13)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">17:30–18:30</span><span class="nm">西歸浦偶來市場</span><span class="b bf">逛市場</span></div>
+<div class="ct"><span class="nm">西歸浦偶來市場</span><span class="b bf">逛市場</span></div>
 <div class="tip">서귀포 올레시장 · 各式在地小吃、生鮮、特產，熱鬧的傳統市場。</div>
 </div></div>
 
 <div class="st" id="s14" onclick="focusStop(14)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">19:00–20:30</span><span class="nm">三姓穴海鮮湯 서귀포점</span><span class="b bf">晚餐 🔥</span></div>
+<div class="ct"><span class="nm">三姓穴海鮮湯 서귀포점</span><span class="b bf">晚餐 🔥</span></div>
 <div class="tip">서귀포시 · 招牌各式海鮮鍋，在地人氣餐廳。</div>
 </div></div>
 
 <div class="st" id="s15" onclick="focusStop(15)"><div class="dot t"></div><div class="card">
-<div class="ct"><span class="tm">21:00</span><span class="nm">Stay in Jeju 西歸浦 Check-in</span><span class="b bt">住宿</span></div>
+<div class="ct"><span class="nm">Stay in Jeju 西歸浦 Check-in</span><span class="b bt">住宿</span></div>
 <div class="tip">西歸浦市區 Airbnb。</div>
 </div></div>
 
@@ -262,46 +304,46 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="tl">
 
 <div class="st" id="s16" onclick="focusStop(16)"><div class="dot s"></div><div class="card">
-<div class="ct"><span class="tm">09:00–12:00</span><span class="nm">9.81 Park 無重力賽車</span><span class="b bs">體驗</span></div>
-<div class="tip">서귀포시 안덕면 중산간서로 1878 · 全長 1.7km 重力賽車道，無需駕照，老少咸宜。建議提前網路預約。</div>
+<div class="ct"><span class="nm">9.81 Park 無重力賽車</span><span class="b bs">體驗</span></div>
+<div class="tip">서귀포시 안덕면 중산간서로 1878 · 全長 1.7km 重力賽車道，無需駕照。建議提前網路預約。</div>
 <span class="tag">重力賽車</span><span class="tag">計時挑戰</span><span class="tag">免費停車</span>
 </div></div>
 
 <div class="st" id="s17" onclick="focusStop(17)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">13:00–14:00</span><span class="nm">Noraba 章魚海鮮拉麵</span><span class="b bf">午餐</span></div>
+<div class="ct"><span class="nm">Noraba 章魚海鮮拉麵</span><span class="b bf">午餐</span></div>
 <div class="tip">애월읍 · ★4.0 · 章魚海鮮拉麵，10:00–14:00 / 15:00–16:30。</div>
 <div class="warn">⚠ 每日僅開放至 16:30，務必早到</div>
 </div></div>
 
 <div class="st" id="s18" onclick="focusStop(18)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">14:30–15:30</span><span class="nm">Haejigae Cafe 해지개</span><span class="b bf">下午茶</span></div>
+<div class="ct"><span class="nm">Haejigae Cafe 해지개</span><span class="b bf">下午茶</span></div>
 <div class="tip">涯月咖啡街韓屋海景咖啡廳，夕陽時段景色絕美。推薦艾草糕點或花生拿鐵。</div>
 </div></div>
 
 <div class="st" id="s19" onclick="focusStop(19)"><div class="dot p"></div><div class="card">
-<div class="ct"><span class="tm">15:30–16:30</span><span class="nm">Yonex Nice Minton 나이스민턴</span><span class="b bp">購物</span></div>
+<div class="ct"><span class="nm">Yonex Nice Minton 나이스민턴</span><span class="b bp">購物</span></div>
 <div class="tip">노형동 729-4 · 韓國時間 10:00–19:00。</div>
 </div></div>
 
 <div class="st" id="s20" onclick="focusStop(20)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">17:00–18:30</span><span class="nm">東門傳統市場 + 七星街</span><span class="b bf">逛街</span></div>
+<div class="ct"><span class="nm">東門傳統市場 + 七星街</span><span class="b bf">逛街</span></div>
 <div class="tip">東門市場逛攤吃小吃，SOLBRE 在東門市場1號出口，海鹽可頌＋霜淇淋 ★4.5 · 10:30–19:00。</div>
 </div></div>
 
 <div class="st" id="s21" onclick="focusStop(21)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">19:00–20:30</span><span class="nm">晚餐</span><span class="b bf">晚餐 🔥</span></div>
+<div class="ct"><span class="nm">晚餐</span><span class="b bf">晚餐 🔥</span></div>
 <div class="or"><div class="or-title">二選一</div>
 <div class="or-opt"><span class="pill">選A</span><span><strong>제주따이 Jejuttai</strong>（老衡洞）— 招牌鮑魚石鍋飯（전복돌솥밥）必點</span></div>
 <div class="or-opt"><span class="pill b2">選B</span><span><strong>忠明亭 충명정</strong> — 白帶魚料理，<strong>週二休</strong></span></div>
 </div></div></div>
 
 <div class="st" id="s22" onclick="focusStop(22)"><div class="dot f"></div><div class="card">
-<div class="ct"><span class="tm">晚餐後</span><span class="nm">附近商圈逛街散步</span><span class="b bt">自由活動</span></div>
-<div class="tip">老衡洞 / 新濟州 商圈，咖啡廳、甜點店、藥妝，隨意逛逛。</div>
+<div class="ct"><span class="nm">附近商圈逛街散步</span><span class="b bt">自由活動</span></div>
+<div class="tip">老衡洞 / 新濟州商圈，咖啡廳、甜點店、藥妝，隨意逛逛。</div>
 </div></div>
 
 <div class="st" id="s23" onclick="focusStop(23)"><div class="dot n"></div><div class="card">
-<div class="ct"><span class="tm">21:00 後</span><span class="nm">漢拏樹木園夜市（可選）</span><span class="b bn">夜間活動</span></div>
+<div class="ct"><span class="nm">漢拏樹木園夜市（可選）</span><span class="b bn">夜間活動</span></div>
 <div class="tip">童話感燈光樹下市集，18:00–23:00。若逛街後還有精力可過去。</div>
 </div></div>
 
@@ -316,7 +358,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 <div class="tl">
 
 <div class="st" id="s24" onclick="focusStop(24)"><div class="dot c"></div><div class="card">
-<div class="ct"><span class="tm">08:00–08:30</span><span class="nm">樂天租車還車</span><span class="b bc">還車</span></div>
+<div class="ct"><span class="nm">樂天租車還車</span><span class="b bc">還車</span></div>
 <div class="tip">地點：Jeju Auto House（92, Yonghae-ro）</div>
 <div class="stp"><div class="sn">!</div><span>出發前先找充電站加滿電（Naver Map 搜「전기차 충전」）</span></div>
 <div class="stp"><div class="sn">1</div><span>開車至 Jeju Auto House 還車</span></div>
@@ -324,12 +366,12 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div></div>
 
 <div class="st" id="s25" onclick="focusStop(25)"><div class="dot p"></div><div class="card">
-<div class="ct"><span class="tm">08:45–10:40</span><span class="nm">濟州機場 報到 & 免稅店</span><span class="b bp">購物</span></div>
+<div class="ct"><span class="nm">濟州機場 報到 & 免稅店</span><span class="b bp">購物</span></div>
 <div class="tip">推薦：濟州橘子巧克力、橘子塔。若沒買到 SOLBRE，機場內也有濟州名物可補買。</div>
 </div></div>
 
 <div class="st" id="s26" onclick="focusStop(26)"><div class="dot t"></div><div class="card">
-<div class="ct"><span class="tm">10:40</span><span class="nm">IT655 起飛，平安回台灣！✈</span><span class="b bt">飛行</span></div>
+<div class="ct"><span class="nm">IT655 起飛，平安回台灣！✈</span><span class="b bt">飛行</span></div>
 </div></div>
 
 </div></div>
@@ -345,6 +387,9 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div>
 <div class="tbox"><div class="tt">Snoopy Garden</div>
 <div class="tr"><span>🐶</span><span>建議提前於官網預購（snoopygarden.com），最後入場 18:00</span></div>
+</div>
+<div class="tbox"><div class="tt">9.81 Park</div>
+<div class="tr"><span>🏎</span><span>建議提前網路預約，熱門時段容易額滿</span></div>
 </div>
 <div class="tbox"><div class="tt">休假日整理</div>
 <div class="tr"><span>⚠</span><span><strong>明珍鮑魚</strong> — 週二休（4/6 週一 ✓，4/7 週一 ✓）</span></div>
@@ -371,38 +416,72 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 </div><!-- /app -->
 
 <script>
+// ── Currency Calculator ──
+let krwPerTwd = 43;
+
+function calcConvert() {
+  const krw = parseFloat(document.getElementById('krw-in').value);
+  const out = document.getElementById('twd-out');
+  if (!krw || isNaN(krw)) { out.textContent = 'NT$ —'; return; }
+  const twd = krw / krwPerTwd;
+  out.textContent = 'NT$ ' + twd.toLocaleString('zh-TW', {maximumFractionDigits: 0});
+}
+
+function toggleRate() {
+  const row = document.getElementById('rate-row');
+  row.classList.toggle('show');
+}
+
+document.getElementById('krw-in').addEventListener('input', calcConvert);
+document.getElementById('rate-in').addEventListener('input', function() {
+  const v = parseFloat(this.value);
+  if (v > 0) { krwPerTwd = v; calcConvert(); }
+});
+
+// Fetch live rate
+fetch('https://open.er-api.com/v6/latest/TWD')
+  .then(r => r.json())
+  .then(d => {
+    if (d?.rates?.KRW) {
+      krwPerTwd = d.rates.KRW;
+      document.getElementById('rate-in').value = krwPerTwd.toFixed(1);
+      document.getElementById('rate-hint').textContent = '（即時匯率）';
+      calcConvert();
+    }
+  })
+  .catch(() => {
+    document.getElementById('rate-hint').textContent = '（預設值）';
+  });
+
+// ── Map ──
 const STOPS = [
-  // Day 1
-  {id:0,  day:0, lat:33.5070, lng:126.4920, name:"樂天租車取車",              time:"09:25–10:30", color:"#378ADD", tip:"入境大廳 5 號出口 → 樂天接駁車"},
-  {id:1,  day:0, lat:33.4968, lng:126.5232, name:"린스포츠 Lin Sports",       time:"10:30–11:30", color:"#7F77DD", tip:"오라삼동 · 羽球購物 · 營業至 18:00"},
-  {id:2,  day:0, lat:33.5373, lng:126.8192, name:"Audrant Bakery 大蒜麵包",   time:"12:15–12:45", color:"#EF9F27", tip:"★4.4 · 大蒜麵包現烤限量"},
-  {id:3,  day:0, lat:33.5448, lng:126.8321, name:"倫敦貝果博物館",             time:"13:00–15:00", color:"#EF9F27", tip:"★4.2 · 08:00–18:00 · 抵達立刻取號"},
-  {id:4,  day:0, lat:33.5519, lng:126.7931, name:"明珍鮑魚 명진전복",          time:"15:30–16:30", color:"#EF9F27", tip:"구좌읍 행원리 · 週二休 · 09:30–20:30"},
-  {id:5,  day:0, lat:33.5580, lng:126.8130, name:"Airbnb Check-in",           time:"16:30–17:30", color:"#888",    tip:"1800-1 Haemajihaean-ro, Gujwa-eup"},
-  {id:6,  day:0, lat:33.5494, lng:126.7983, name:"Snoopy Garden",             time:"17:30–19:00", color:"#1D9E75", tip:"구좌읍 금백조로 930 · 成人 19,000 KRW · 最後入場 18:00"},
-  {id:7,  day:0, lat:33.4581, lng:126.9425, name:"城山日出峰（可選）",         time:"看時間",      color:"#1D9E75", tip:"可改隔天早上 · Fritz Coffee 對面"},
-  {id:8,  day:0, lat:33.5553, lng:126.7952, name:"道民商会 행원점",            time:"19:30–21:00", color:"#EF9F27", tip:"구좌읍 행원리 1537-20"},
-  // Day 2
-  {id:9,  day:1, lat:33.4620, lng:126.9338, name:"城山港早餐",                time:"08:00–09:00", color:"#EF9F27", tip:"Orrin Cafe or Fritz Coffee"},
-  {id:10, day:1, lat:33.4581, lng:126.9425, name:"城山日出峰（若昨日未去）",   time:"09:00–09:45", color:"#1D9E75", tip:"Day 1 已去則跳過"},
-  {id:11, day:1, lat:33.5047, lng:126.9713, name:"牛島半日遊",                time:"09:30–15:30", color:"#1D9E75", tip:"渡輪約 15 分鐘 · CoCoMAMA · 牛島王子花生冰"},
-  {id:12, day:1, lat:33.2459, lng:126.5614, name:"正房瀑布（可選）",           time:"16:45–17:15", color:"#1D9E75", tip:"直入大海的壯觀瀑布 · 成人 2,000 KRW"},
-  {id:13, day:1, lat:33.2490, lng:126.5578, name:"西歸浦偶來市場",             time:"17:30–18:30", color:"#EF9F27", tip:"서귀포 올레시장 · 在地小吃與特產"},
-  {id:14, day:1, lat:33.2490, lng:126.5560, name:"三姓穴海鮮湯 서귀포점",     time:"19:00–20:30", color:"#EF9F27", tip:"서귀포시 · 海鮮鍋"},
-  {id:15, day:1, lat:33.2530, lng:126.5600, name:"Stay in Jeju 西歸浦 Check-in",time:"21:00",    color:"#888",    tip:"西歸浦市區 Airbnb"},
-  // Day 3
-  {id:16, day:2, lat:33.3160, lng:126.3130, name:"9.81 Park 無重力賽車",      time:"09:00–12:00", color:"#1D9E75", tip:"안덕면 중산간서로 1878 · 建議提前網路預約"},
-  {id:17, day:2, lat:33.4707, lng:126.3638, name:"Noraba 章魚海鮮拉麵",       time:"13:00–14:00", color:"#EF9F27", tip:"애월읍 · ★4.0 · 僅至 16:30"},
-  {id:18, day:2, lat:33.4698, lng:126.3590, name:"Haejigae Cafe 해지개",      time:"14:30–15:30", color:"#EF9F27", tip:"涯月韓屋海景咖啡廳 · 夕陽絕美"},
-  {id:19, day:2, lat:33.4892, lng:126.5012, name:"Yonex Nice Minton",         time:"15:30–16:30", color:"#7F77DD", tip:"노형동 729-4 · 10:00–19:00"},
-  {id:20, day:2, lat:33.5131, lng:126.5296, name:"東門傳統市場 + 七星街",      time:"17:00–18:30", color:"#EF9F27", tip:"SOLBRE 海鹽可頌 ★4.5 · 東門市場1號出口"},
-  {id:21, day:2, lat:33.5059, lng:126.5270, name:"晚餐",                      time:"19:00–20:30", color:"#EF9F27", tip:"Jejuttai 鮑魚石鍋飯 or 忠明亭白帶魚"},
-  {id:22, day:2, lat:33.5059, lng:126.5270, name:"附近商圈逛街散步",           time:"晚餐後",      color:"#888",    tip:"老衡洞 / 新濟州商圈"},
-  {id:23, day:2, lat:33.4834, lng:126.5118, name:"漢拏樹木園夜市（可選）",     time:"21:00 後",    color:"#D85A30", tip:"童話燈光市集 · 18:00–23:00"},
-  // Day 4
-  {id:24, day:3, lat:33.5074, lng:126.4848, name:"樂天租車還車",              time:"08:00–08:30", color:"#378ADD", tip:"Jeju Auto House · 92 Yonghae-ro"},
-  {id:25, day:3, lat:33.5112, lng:126.4929, name:"濟州機場 報到 & 免稅店",    time:"08:45–10:40", color:"#7F77DD", tip:"橘子巧克力 · 橘子塔"},
-  {id:26, day:3, lat:33.5112, lng:126.4929, name:"IT655 起飛 ✈",             time:"10:40",       color:"#888",    tip:"平安回台灣！"},
+  {id:0,  day:0, lat:33.5070, lng:126.4920, name:"樂天租車取車",              tip:"入境大廳 5 號出口 → 樂天接駁車"},
+  {id:1,  day:0, lat:33.4968, lng:126.5232, name:"린스포츠 Lin Sports",       tip:"오라삼동 · 羽球購物 · 營業至 18:00"},
+  {id:2,  day:0, lat:33.5373, lng:126.8192, name:"Audrant Bakery 大蒜麵包",   tip:"★4.4 · 大蒜麵包現烤限量"},
+  {id:3,  day:0, lat:33.5448, lng:126.8321, name:"倫敦貝果博物館",             tip:"★4.2 · 08:00–18:00"},
+  {id:4,  day:0, lat:33.5519, lng:126.7931, name:"明珍鮑魚 명진전복",          tip:"구좌읍 행원리 · 週二休"},
+  {id:5,  day:0, lat:33.5580, lng:126.8130, name:"Airbnb Check-in",           tip:"1800-1 Haemajihaean-ro, Gujwa-eup"},
+  {id:6,  day:0, lat:33.5494, lng:126.7983, name:"Snoopy Garden",             tip:"구좌읍 금백조로 930 · 最後入場 18:00"},
+  {id:7,  day:0, lat:33.4581, lng:126.9425, name:"城山日出峰（可選）",         tip:"可改隔天早上"},
+  {id:8,  day:0, lat:33.5553, lng:126.7952, name:"道民商会 행원점",            tip:"구좌읍 행원리 1537-20"},
+  {id:9,  day:1, lat:33.4620, lng:126.9338, name:"城山港早餐",                tip:"Orrin Cafe or Fritz Coffee"},
+  {id:10, day:1, lat:33.4581, lng:126.9425, name:"城山日出峰（若昨日未去）",   tip:"Day 1 已去則跳過"},
+  {id:11, day:1, lat:33.5047, lng:126.9713, name:"牛島半日遊",                tip:"渡輪約 15 分鐘 · CoCoMAMA · 牛島王子"},
+  {id:12, day:1, lat:33.2459, lng:126.5614, name:"正房瀑布（可選）",           tip:"成人 2,000 KRW"},
+  {id:13, day:1, lat:33.2490, lng:126.5578, name:"西歸浦偶來市場",             tip:"서귀포 올레시장"},
+  {id:14, day:1, lat:33.2490, lng:126.5560, name:"三姓穴海鮮湯 서귀포점",     tip:"서귀포시 · 海鮮鍋"},
+  {id:15, day:1, lat:33.2530, lng:126.5600, name:"Stay in Jeju 西歸浦",       tip:"西歸浦市區 Airbnb"},
+  {id:16, day:2, lat:33.3160, lng:126.3130, name:"9.81 Park 無重力賽車",      tip:"안덕면 · 建議提前預約"},
+  {id:17, day:2, lat:33.4707, lng:126.3638, name:"Noraba 章魚海鮮拉麵",       tip:"애월읍 · 僅至 16:30"},
+  {id:18, day:2, lat:33.4698, lng:126.3590, name:"Haejigae Cafe 해지개",      tip:"涯月韓屋海景咖啡廳"},
+  {id:19, day:2, lat:33.4892, lng:126.5012, name:"Yonex Nice Minton",         tip:"노형동 · 10:00–19:00"},
+  {id:20, day:2, lat:33.5131, lng:126.5296, name:"東門傳統市場 + 七星街",      tip:"SOLBRE 海鹽可頌 ★4.5"},
+  {id:21, day:2, lat:33.5059, lng:126.5270, name:"晚餐",                      tip:"Jejuttai or 忠明亭白帶魚"},
+  {id:22, day:2, lat:33.5059, lng:126.5270, name:"附近商圈逛街",               tip:"老衡洞 / 新濟州商圈"},
+  {id:23, day:2, lat:33.4834, lng:126.5118, name:"漢拏樹木園夜市（可選）",     tip:"18:00–23:00"},
+  {id:24, day:3, lat:33.5074, lng:126.4848, name:"樂天租車還車",              tip:"Jeju Auto House · 92 Yonghae-ro"},
+  {id:25, day:3, lat:33.5112, lng:126.4929, name:"濟州機場 報到 & 免稅店",    tip:"橘子巧克力 · 橘子塔"},
+  {id:26, day:3, lat:33.5112, lng:126.4929, name:"IT655 起飛 ✈",             tip:"平安回台灣！"},
 ];
 
 const DAY_COLORS = ["#378ADD","#1D9E75","#7F77DD","#EF9F27"];
@@ -430,7 +509,7 @@ function makeIcon(color, dayNum) {
 
 const markers = STOPS.map(s => {
   const m = L.marker([s.lat, s.lng], {icon: makeIcon(DAY_COLORS[s.day], s.day + 1)})
-    .bindPopup(`<div class="pop-nm">${s.name}</div><div class="pop-tm">${DAY_NAMES[s.day]} · ${s.time}</div>${s.tip ? `<div class="pop-tip">${s.tip}</div>` : ''}`, {maxWidth: 220})
+    .bindPopup(`<div class="pop-nm">${s.name}</div><div class="pop-tm">${DAY_NAMES[s.day]}</div>${s.tip ? `<div class="pop-tip">${s.tip}</div>` : ''}`, {maxWidth: 220})
     .addTo(map);
   m.on('click', () => highlightCard(s.id));
   return m;
@@ -452,7 +531,7 @@ function filterDay(d) {
     show ? map.addLayer(m) : map.removeLayer(m);
   });
   if (d !== 'all') fitDay(d);
-  else { map.setView([33.40, 126.60], 10); }
+  else map.setView([33.40, 126.60], 10);
 }
 
 function fitDay(d) {
